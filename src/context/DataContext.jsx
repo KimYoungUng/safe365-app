@@ -37,7 +37,10 @@ export function DataProvider({ children }) {
           ...c, 
           managerName: c.manager_name, 
           managerPhone: c.manager_phone,
-          tbm_template: c.tbm_template || localTbmTemplates[c.id]
+          tbm_template: c.tbm_template || localTbmTemplates[c.id],
+          useSafetyFeature: c.use_safety_feature,
+          useWorkFeature: c.use_work_feature,
+          useEduFeature: c.use_edu_feature
         })));
       }
 
