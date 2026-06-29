@@ -693,8 +693,8 @@ export function DataProvider({ children }) {
     if (data.managerName !== undefined) dbData.manager_name = data.managerName;
     if (data.managerPhone !== undefined) dbData.manager_phone = data.managerPhone;
     if (data.address !== undefined) dbData.address = data.address;
-    if (data.latitude !== undefined) dbData.latitude = data.latitude;
-    if (data.longitude !== undefined) dbData.longitude = data.longitude;
+    if (data.latitude !== undefined) dbData.latitude = data.latitude === '' ? null : data.latitude;
+    if (data.longitude !== undefined) dbData.longitude = data.longitude === '' ? null : data.longitude;
     if (data.workStartTime !== undefined) dbData.work_start_time = data.workStartTime;
     if (data.workEndTime !== undefined) dbData.work_end_time = data.workEndTime;
     if (data.useSafetyFeature !== undefined) dbData.use_safety_feature = data.useSafetyFeature;
