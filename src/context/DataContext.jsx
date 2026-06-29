@@ -127,6 +127,33 @@ export function DataProvider({ children }) {
           nextBillingDate: s.next_billing_date
         })));
       }
+      // 10. Missing Tables
+      const { data: eduData } = await supabase.from('educations').select('*');
+      if (eduData) setEducations(eduData.map(e => ({...e, companyId: e.company_id, startDate: e.start_date, endDate: e.end_date, videoUrl: e.video_url, cutLine: e.cut_line, quizzes: typeof e.quizzes === 'string' ? JSON.parse(e.quizzes) : e.quizzes})));
+
+      const { data: userEduData } = await supabase.from('user_educations').select('*');
+      if (userEduData) setUserEducations(userEduData.map(ue => ({...ue, userId: ue.user_id, eduId: ue.edu_id})));
+
+      const { data: payrollsData } = await supabase.from('payrolls').select('*');
+      if (payrollsData) setPayrolls(payrollsData.map(p => ({...p, companyId: p.company_id, records: typeof p.records === 'string' ? JSON.parse(p.records) : p.records})));
+
+      const { data: psData } = await supabase.from('payroll_settings').select('*');
+      if (psData) {
+        const psMap = {};
+        psData.forEach(ps => {
+          psMap[ps.company_id] = { baseSalary: ps.base_salary, hourlyRate: ps.hourly_rate, overtimeRate: ps.overtime_rate, taxRate: ps.tax_rate };
+        });
+        setPayrollSettings(prev => ({...prev, ...psMap}));
+      }
+
+      const { data: arData } = await supabase.from('attendance_requests').select('*');
+      if (arData) setAttendanceRequests(arData.map(ar => ({...ar, userId: ar.user_id, companyId: ar.company_id, requestTime: ar.request_time})));
+
+      const { data: scData } = await supabase.from('safety_checklists').select('*');
+      if (scData) setSafetyChecklist(scData.map(sc => ({...sc, companyId: sc.company_id, options: typeof sc.options === 'string' ? JSON.parse(sc.options) : sc.options})));
+
+      const { data: emData } = await supabase.from('emergencies').select('*');
+      if (emData) setActiveEmergencies(emData.filter(e => e.status === '발생').map(e => e.company_id));
     };
     fetchSupabaseData();
   }, []);
@@ -246,15 +273,16 @@ export function DataProvider({ children }) {
     });
   }, []);
 
-  const updatePayrollSettings = (companyId, newSettings) => {
+  const updatePayrollSettings = async (companyId, newSettings) => {
+    const dbData = { company_id: companyId, base_salary: newSettings.baseSalary, hourly_rate: newSettings.hourlyRate, overtime_rate: newSettings.overtimeRate, tax_rate: newSettings.taxRate };
+    await supabase.from('payroll_settings').upsert(dbData);
     setPayrollSettings(prev => {
       const updated = { ...prev, [companyId]: newSettings };
       localStorage.setItem('payrollSettings', JSON.stringify(updated));
       return updated;
     });
   };
-
-  const updateCompanyTbmTemplate = async (companyId, newTemplate) => {
+    const updateCompanyTbmTemplate = async (companyId, newTemplate) => {
     try {
       const { error } = await supabase
         .from('companies')
@@ -314,69 +342,65 @@ export function DataProvider({ children }) {
   };
 
   // 안전 점검 항목 추가
-  const addSafetyChecklistItem = (title, description, options = ['양호', '미흡', '불량']) => {
-    setSafetyChecklist(prev => [
-      ...prev,
-      { id: Date.now(), title, description, options }
-    ]);
+  const addSafetyChecklistItem = async (title, description, options = ['양호', '미흡', '불량']) => {
+    const newId = String(Date.now());
+    const dbData = { id: newId, company_id: 'SYSTEM', title, description, options: JSON.stringify(options), created_at: new Date().toISOString() };
+    await supabase.from('safety_checklists').insert(dbData);
+    setSafetyChecklist(prev => [...prev, { id: newId, title, description, options }]);
   };
-
-  // 안전 점검 항목 수정
-  const updateSafetyChecklistItem = (id, title, description, options) => {
-    setSafetyChecklist(prev => prev.map(item => 
-      item.id === id ? { ...item, title, description, options } : item
-    ));
+    const updateSafetyChecklistItem = async (id, title, description, options) => {
+    await supabase.from('safety_checklists').update({ title, description, options: JSON.stringify(options) }).eq('id', String(id));
+    setSafetyChecklist(prev => prev.map(item => item.id === id ? { ...item, title, description, options } : item));
   };
-
-  // 안전 점검 항목 삭제
-  const deleteSafetyChecklistItem = (id) => {
+    const deleteSafetyChecklistItem = async (id) => {
+    await supabase.from('safety_checklists').delete().eq('id', String(id));
     setSafetyChecklist(prev => prev.filter(item => item.id !== id));
   };
-
-  // 긴급 상황 발생 (작업중지)
-  const triggerEmergency = (companyId, issuerName) => {
+    const triggerEmergency = async (companyId, issuerName) => {
+    const newId = String(Date.now());
+    await supabase.from('emergencies').insert({ id: newId, company_id: companyId, issuer_name: issuerName, status: '발생' });
     setActiveEmergencies(prev => {
-      if (prev.includes(companyId)) return prev;
-      const next = [...prev, companyId];
-      localStorage.setItem('activeEmergencies', JSON.stringify(next));
-      return next;
+      if (!prev.includes(companyId)) {
+        const next = [...prev, companyId];
+        localStorage.setItem('activeEmergencies', JSON.stringify(next));
+        return next;
+      }
+      return prev;
     });
-
+    const newEvent = { id: newId, companyId, type: '발생', issuerName, timestamp: new Date().toISOString() };
     setEmergencyHistory(prev => {
-      const newEvent = {
-        id: Date.now(),
-        companyId,
-        issuerName: issuerName || '직원',
-        timestamp: new Date().toISOString()
-      };
       const next = [...prev, newEvent];
       localStorage.setItem('emergencyHistory', JSON.stringify(next));
       return next;
     });
   };
-
-  // 긴급 상황 해제
-  const resolveEmergency = (companyId) => {
+    const resolveEmergency = async (companyId) => {
+    await supabase.from('emergencies').update({ status: '해제' }).eq('company_id', companyId).eq('status', '발생');
     setActiveEmergencies(prev => {
       const next = prev.filter(id => id !== companyId);
       localStorage.setItem('activeEmergencies', JSON.stringify(next));
       return next;
     });
+    const newEvent = { id: Date.now(), companyId, type: '해제', timestamp: new Date().toISOString() };
+    setEmergencyHistory(prev => {
+      const next = [...prev, newEvent];
+      localStorage.setItem('emergencyHistory', JSON.stringify(next));
+      return next;
+    });
   };
-
-  // 급여 정산 확정 처리 (상세 내역 records 포함)
-  const confirmPayroll = (companyId, month, records = []) => {
+    const confirmPayroll = async (companyId, month, records = []) => {
+    const newId = String(Date.now());
+    const dbData = { id: newId, company_id: companyId, month, status: '확정', records: JSON.stringify(records) };
+    await supabase.from('payrolls').insert(dbData);
     setPayrolls(prev => {
       const existing = prev.find(p => p.companyId === companyId && p.month === month);
       if (existing) return prev;
-      const newPayrolls = [...prev, { id: Date.now(), companyId, month, status: '확정', records }];
+      const newPayrolls = [...prev, { id: newId, companyId, month, status: '확정', records }];
       localStorage.setItem('payrolls', JSON.stringify(newPayrolls));
       return newPayrolls;
     });
   };
-
-  // 출근 등록
-  const addAttendance = async (userId, companyId, date, timeStr, status) => {
+    const addAttendance = async (userId, companyId, date, timeStr, status) => {
     const dbRecord = { user_id: userId, date, clock_in: timeStr, status, company_id: companyId };
     const { data } = await supabase.from('attendances').insert(dbRecord).select('*').single();
     if (data) {
@@ -394,81 +418,22 @@ export function DataProvider({ children }) {
   };
 
   // 출퇴근 기록 수정 요청
-  const requestAttendanceChange = (userId, companyId, date, type, requestTime, reason) => {
-    setAttendanceRequests(prev => {
-      const newRequest = {
-        id: Date.now(),
-        userId,
-        companyId,
-        date,
-        type, // 'clockIn' or 'clockOut'
-        requestTime,
-        reason,
-        status: '대기',
-        createdAt: new Date().toISOString()
-      };
-      const updated = [newRequest, ...prev];
-      localStorage.setItem('attendanceRequests', JSON.stringify(updated));
-      return updated;
-    });
+  const requestAttendanceChange = async (userId, companyId, date, type, requestTime, reason) => {
+    const newId = String(Date.now());
+    const dbData = { id: newId, user_id: userId, company_id: companyId, date, type, request_time: requestTime, reason, status: '대기중' };
+    await supabase.from('attendance_requests').insert(dbData);
+    const newRequest = { id: newId, userId, companyId, date, type, requestTime, reason, status: '대기중', createdAt: new Date().toISOString() };
+    setAttendanceRequests(prev => [newRequest, ...prev]);
   };
-
-  // 출퇴근 기록 수정 요청 승인
-  const approveAttendanceChange = (requestId) => {
-    let targetRequest = null;
-    setAttendanceRequests(prev => {
-      const updated = prev.map(req => {
-        if (req.id === requestId) {
-          targetRequest = req;
-          return { ...req, status: '승인' };
-        }
-        return req;
-      });
-      localStorage.setItem('attendanceRequests', JSON.stringify(updated));
-      return updated;
-    });
-
-    if (targetRequest) {
-      setAttendances(prev => {
-        let isExisting = false;
-        const updated = prev.map(a => {
-          if (a.userId === targetRequest.userId && a.date === targetRequest.date) {
-            isExisting = true;
-            if (targetRequest.type === 'clockIn') return { ...a, clockIn: targetRequest.requestTime };
-            if (targetRequest.type === 'clockOut') return { ...a, clockOut: targetRequest.requestTime };
-          }
-          return a;
-        });
-        
-        // 기록이 없는 상태에서 출근시간 추가 요청 시 (누락 보완)
-        if (!isExisting && targetRequest.type === 'clockIn') {
-          updated.push({
-            id: Date.now(),
-            userId: targetRequest.userId,
-            date: targetRequest.date,
-            clockIn: targetRequest.requestTime,
-            clockOut: null,
-            status: '정상출근'
-          });
-        }
-        
-        localStorage.setItem('attendances', JSON.stringify(updated));
-        return updated;
-      });
-    }
+    const approveAttendanceChange = async (requestId) => {
+    await supabase.from('attendance_requests').update({ status: '승인' }).eq('id', String(requestId));
+    setAttendanceRequests(prev => prev.map(req => req.id === requestId ? { ...req, status: '승인' } : req));
   };
-
-  // 출퇴근 기록 수정 요청 반려
-  const rejectAttendanceChange = (requestId) => {
-    setAttendanceRequests(prev => {
-      const updated = prev.map(req => req.id === requestId ? { ...req, status: '반려' } : req);
-      localStorage.setItem('attendanceRequests', JSON.stringify(updated));
-      return updated;
-    });
+    const rejectAttendanceChange = async (requestId) => {
+    await supabase.from('attendance_requests').update({ status: '반려' }).eq('id', String(requestId));
+    setAttendanceRequests(prev => prev.map(req => req.id === requestId ? { ...req, status: '반려' } : req));
   };
-
-  // 휴가 신청
-  const applyLeave = async (leaveData) => {
+    const applyLeave = async (leaveData) => {
     const dbLeave = {
       user_id: leaveData.userId,
       type: leaveData.type,
@@ -573,118 +538,65 @@ export function DataProvider({ children }) {
   };
 
   // 교육 수강 완료 처리
-  const takeCourse = (userId, eduId) => {
+  const takeCourse = async (userId, eduId) => {
+    const newId = String(Date.now());
+    const dbUe = { id: newId, user_id: userId, edu_id: eduId, progress: 0, status: '수강중' };
+    await supabase.from('user_educations').insert(dbUe);
     setUserEducations(prev => {
       const existing = prev.find(ue => ue.userId === userId && String(ue.eduId) === String(eduId));
-      let updated;
-      if (existing) {
-        updated = prev.map(ue => ue.userId === userId && String(ue.eduId) === String(eduId) ? { ...ue, progress: 100, status: '수료' } : ue);
-      } else {
-        updated = [...prev, { userId, eduId: isNaN(eduId) ? eduId : Number(eduId), progress: 100, status: '수료' }];
-      }
+      if (existing) return prev;
+      const newUe = { userId, eduId, progress: 0, status: '수강중', date: new Date().toISOString() };
+      const updated = [...prev, newUe];
       localStorage.setItem('userEducations', JSON.stringify(updated));
       return updated;
     });
   };
-
-  // 교육 진행률 업데이트
-  const updateProgress = (userId, eduId, progress) => {
+    const updateProgress = async (userId, eduId, progress) => {
+    const status = progress >= 100 ? '수료' : '수강중';
+    await supabase.from('user_educations').update({ progress, status }).eq('user_id', userId).eq('edu_id', String(eduId));
     setUserEducations(prev => {
-      const existing = prev.find(ue => ue.userId === userId && String(ue.eduId) === String(eduId));
-      let updated;
-      if (existing) {
-        updated = prev.map(ue => ue.userId === userId && String(ue.eduId) === String(eduId) ? { ...ue, progress: Math.min(progress, 100) } : ue);
-      } else {
-        updated = [...prev, { userId, eduId: isNaN(eduId) ? eduId : Number(eduId), progress: Math.min(progress, 100), status: '미수료' }];
-      }
+      const updated = prev.map(ue => ue.userId === userId && String(ue.eduId) === String(eduId) ? { ...ue, progress: Math.min(100, progress), status } : ue);
       localStorage.setItem('userEducations', JSON.stringify(updated));
       return updated;
     });
   };
-
-  // 교육 과정 추가
-  const addEducation = async (companyId, title, startDate, endDate, videoUrl, videoFile, quizzes, cutLine = 60) => {
-    const newEduId = Date.now();
-    
-    if (videoFile) {
-      try {
-        await saveVideoFile(newEduId, videoFile);
-      } catch (err) {
-        console.error('Failed to save video to IndexedDB:', err);
-      }
-    }
-
-    const newEdu = {
-      id: newEduId,
-      companyId,
-      title,
-      startDate,
-      endDate,
-      videoUrl: videoFile ? '' : (videoUrl || 'https://www.w3schools.com/html/mov_bbb.mp4'),
-      quizzes,
-      cutLine: Number(cutLine)
-    };
-
+    const addEducation = async (companyId, title, startDate, endDate, videoUrl, videoFile, quizzes, cutLine = 60) => {
+    const newId = String(Date.now());
+    const finalVideoUrl = videoUrl;
+    const dbEdu = { id: newId, company_id: companyId, title, start_date: startDate, end_date: endDate, video_url: finalVideoUrl, quizzes: JSON.stringify(quizzes), cut_line: cutLine };
+    await supabase.from('educations').insert(dbEdu);
+    const newEdu = { id: newId, companyId: companyId || null, title, startDate, endDate, videoUrl: finalVideoUrl, quizzes: quizzes || [], cutLine, createdAt: new Date().toISOString() };
     setEducations(prev => {
       const updated = [...prev, newEdu];
       localStorage.setItem('educations', JSON.stringify(updated));
       return updated;
     });
   };
-
-  // 교육 과정 수정
-  const updateEducation = async (id, title, startDate, endDate, videoUrl, videoFile, quizzes, cutLine = 60) => {
-    if (videoFile) {
-      try {
-        await saveVideoFile(id, videoFile);
-      } catch (err) {
-        console.error('Failed to save video to IndexedDB:', err);
-      }
-    }
-
+    const updateEducation = async (id, title, startDate, endDate, videoUrl, videoFile, quizzes, cutLine = 60) => {
+    const finalVideoUrl = videoUrl;
+    const dbEdu = { title, start_date: startDate, end_date: endDate, video_url: finalVideoUrl, quizzes: JSON.stringify(quizzes), cut_line: cutLine };
+    await supabase.from('educations').update(dbEdu).eq('id', String(id));
     setEducations(prev => {
-      const updated = prev.map(edu => {
-        if (edu.id === id) {
-          return {
-            ...edu,
-            title,
-            startDate,
-            endDate,
-            videoUrl: videoFile ? '' : (videoUrl || edu.videoUrl),
-            quizzes,
-            cutLine: Number(cutLine)
-          };
-        }
-        return edu;
-      });
+      const updated = prev.map(edu => edu.id === id ? { ...edu, title, startDate, endDate, videoUrl: finalVideoUrl, quizzes: quizzes || [], cutLine } : edu);
       localStorage.setItem('educations', JSON.stringify(updated));
       return updated;
     });
   };
-
-  // 교육 과정 삭제
-  const deleteEducation = async (id) => {
-    try {
-      await deleteVideoFile(id);
-    } catch (err) {
-      console.error('Failed to delete video from IndexedDB:', err);
-    }
-
+    const deleteEducation = async (id) => {
+    await supabase.from('educations').delete().eq('id', String(id));
+    await supabase.from('user_educations').delete().eq('edu_id', String(id));
     setEducations(prev => {
       const updated = prev.filter(edu => edu.id !== id);
       localStorage.setItem('educations', JSON.stringify(updated));
       return updated;
     });
-
     setUserEducations(prev => {
       const updated = prev?.filter(ue => ue.eduId !== id) || [];
       localStorage.setItem('userEducations', JSON.stringify(updated));
       return updated;
     });
   };
-
-  // 계약서 작성 및 서명 요청 (관리자) - 서명대기인 경우 덮어쓰기
-  const requestSignature = async (userId, companyId, contractData) => {
+    const requestSignature = async (userId, companyId, contractData) => {
     const newId = Date.now();
     const { error } = await supabase.from('contracts').insert({
       id: newId, user_id: userId, company_id: companyId, status: '서명대기', contract_data: contractData, issued_at: new Date().toISOString().split('T')[0]
@@ -769,15 +681,32 @@ export function DataProvider({ children }) {
     ]);
   };
 
-  const updateCompany = (id, data) => {
+  const updateCompany = async (id, data) => {
+    const dbData = {};
+    if (data.name !== undefined) dbData.name = data.name;
+    if (data.representative !== undefined) dbData.representative = data.representative;
+    if (data.contact !== undefined) dbData.contact = data.contact;
+    if (data.status !== undefined) dbData.status = data.status;
+    if (data.managerName !== undefined) dbData.manager_name = data.managerName;
+    if (data.managerPhone !== undefined) dbData.manager_phone = data.managerPhone;
+    if (data.address !== undefined) dbData.address = data.address;
+    if (data.latitude !== undefined) dbData.latitude = data.latitude;
+    if (data.longitude !== undefined) dbData.longitude = data.longitude;
+    if (data.workStartTime !== undefined) dbData.work_start_time = data.workStartTime;
+    if (data.workEndTime !== undefined) dbData.work_end_time = data.workEndTime;
+    if (data.useSafetyFeature !== undefined) dbData.use_safety_feature = data.useSafetyFeature;
+    if (data.useWorkFeature !== undefined) dbData.use_work_feature = data.useWorkFeature;
+    if (data.useEduFeature !== undefined) dbData.use_edu_feature = data.useEduFeature;
+    if (Object.keys(dbData).length > 0) {
+      await supabase.from('companies').update(dbData).eq('id', id);
+    }
     setCompanies(prev => {
       const updated = prev.map(c => c.id === id ? { ...c, ...data } : c);
       localStorage.setItem('companies', JSON.stringify(updated));
       return updated;
     });
   };
-  // 새로운 구독 추가
-  const addSubscription = async (companyId, data) => {
+    const addSubscription = async (companyId, data) => {
     const newId = Date.now();
     const dbData = {
       id: newId,
