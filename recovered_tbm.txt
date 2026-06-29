@@ -1,0 +1,70 @@
+Created At: 2026-06-26T02:18:39Z
+Completed At: 2026-06-26T02:18:39Z
+File Path: `file:///C:/Users/%EC%9C%A4%EC%84%B1%EA%B5%AD/.gemini/antigravity/brain/1e18951c-b947-458f-9cb7-d29221f25478/.system_generated/tasks/task-42.log`
+Total Lines: 62
+Total Bytes: 4420
+Showing lines 1 to 62
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: 
+2: src\pages\admin\AdminApprovals.jsx:79:      <header className="header" style={{ borderBottom: '1px solid #efefef', back
+3: groundColor: 'white' }}>
+4: src\pages\admin\AdminAttendance.jsx:112:      <header className="header" style={{ borderBottom: '1px solid #efefef', ba
+5: ckgroundColor: 'white' }}>
+6: src\pages\admin\AdminEducation.jsx:260:      <header className="header" style={{ borderBottom: '1px solid #efefef', bac
+7: kgroundColor: 'white' }}>
+8: src\pages\admin\AdminHR.jsx:446:      <header className="header" style={{ borderBottom: '1px solid #efefef', background
+9: Color: 'white' }}>
+10: src\pages\admin\AdminHR.jsx:628:          <header style={{ padding: '16px', display: 'flex', justifyContent: 'space-bet
+11: ween', alignItems: 'center', borderBottom: '1px solid #e2e8f0' }}>
+12: src\pages\admin\AdminPayroll.jsx:258:      <header className="header" style={{ borderBottom: '1px solid #efefef', backg
+13: roundColor: 'white' }}>
+14: src\pages\admin\AdminSafety.jsx:230:      <header className="header" style={{ borderBottom: '1px solid #efefef', backgr
+15: oundColor: 'white', display: 'flex', flexDirection: 'column' }}>
+16: src\pages\admin\AdminSafety_clean.jsx:159:      <header className="header" style={{ borderBottom: '1px solid #efefef', 
+17: backgroundColor: 'white', display: 'flex', flexDirection: 'column' }}>
+18: src\pages\safety\NearMiss.jsx:122:      <header className="header" style={{ borderBottom: '1px solid #e2e8f0', backgrou
+19: ndColor: 'white' }}>
+20: src\pages\safety\SafetyInspection.jsx:84:      <header className="header" style={{ borderBottom: '1px solid #efefef', b
+21: ackgroundColor: 'white' }}>
+22: src\pages\safety\SafetySuggestion.jsx:122:      <header className="header" style={{ borderBottom: '1px solid #e2e8f0', 
+23: backgroundColor: 'white' }}>
+24: src\pages\safety\TbmExecution.jsx:772:        <header className="header" style={{ borderBottom: '1px solid #e2e8f0', ba
+25: ckgroundColor: 'white' }}>
+26: src\pages\super\CompanyBilling.jsx:55:      <header className="header" style={{ borderBottom: '1px solid #efefef', back
+27: groundColor: 'white' }}>
+28: src\pages\super\CompanyDetail.jsx:72:      <header style={{ display: 'flex', alignItems: 'center', marginBottom: '24px'
+29:  }}>
+30: src\pages\super\CompanyManagement.jsx:86:      <header className="header" style={{ borderBottom: '1px solid #efefef', b
+31: ackgroundColor: 'white' }}>
+32: src\pages\super\SubscriptionManagement.jsx:24:      <header className="header" style={{ borderBottom: '1px solid #efefe
+33: f', backgroundColor: 'white' }}>
+34: src\pages\AttendanceRecord.jsx:64:      <header className="header" style={{ borderBottom: '1px solid #efefef', backgrou
+35: ndColor: 'white' }}>
+36: src\pages\Dashboard.jsx:299:      <header className="header" style={{ padding: '16px', backgroundColor: 'transparent', 
+37: borderBottom: 'none' }}>
+38: src\pages\Education.jsx:496:          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'c
+39: enter', padding: '16px', borderBottom: '1px solid #efefef' }}>
+40: src\pages\Education.jsx:843:      <header className="header" style={{ borderBottom: '1px solid #efefef', backgroundColo
+41: r: 'white' }}>
+42: src\pages\LeaveManagement.jsx:70:      <header className="header" style={{ borderBottom: '1px solid #efefef', backgroun
+43: dColor: 'white' }}>
+44: src\pages\Messages.jsx:70:      <header className="header" style={{ borderBottom: '1px solid #efefef', backgroundColor:
+45:  'white' }}>
+46: src\pages\MyContract.jsx:108:      <header className="header" style={{ borderBottom: '1px solid #efefef', backgroundCol
+47: or: 'white' }}>
+48: src\pages\MyPayroll.jsx:49:      <header className="header" style={{ borderBottom: '1px solid #efefef', backgroundColor
+49: : 'white' }}>
+50: src\pages\Notice.jsx:89:      <header className="header" style={{ borderBottom: '1px solid #efefef', backgroundColor: '
+51: white' }}>
+52: src\pages\Notifications.jsx:207:      <header className="page-header" style={{ position: 'sticky', top: 0, backgroundCo
+53: lor: 'white', zIndex: 10, borderBottom: '1px solid #e2e8f0', padding: '16px' }}>
+54: src\pages\Overtime.jsx:67:      <header className="header" style={{ borderBottom: '1px solid #efefef', backgroundColor:
+55:  'white' }}>
+56: src\pages\Profile.jsx:140:      <header className="header" style={{ borderBottom: '1px solid #efefef', backgroundColor:
+57:  'white' }}>
+58: src\pages\Signup.jsx:92:      <header className="header" style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '
+59: white', position: 'sticky', top: 0, zIndex: 10 }}>
+60: 
+61: 
+62: 
+The above content shows the entire, complete file contents of the requested file.
