@@ -125,8 +125,10 @@ export function useEmployeeNotifications() {
       });
     }
 
-    // 2. 교육
-    if (educations && currentUser.roleCode === 'EMPLOYEE') {
+    // 2. 교육 (회사의 교육 기능이 활성화된 경우에만)
+    const userCompanyForEdu = companies?.find(c => c.id === (currentUser.companyId || currentUser.companyName));
+    const isEduFeatureEnabled = userCompanyForEdu ? userCompanyForEdu.useEduFeature !== false : true;
+    if (educations && currentUser.roleCode === 'EMPLOYEE' && isEduFeatureEnabled) {
       const incompleteEducations = educations
         .filter(edu => !edu.companyId || edu.companyId === currentUser.companyId)
         .filter(edu => {
@@ -303,8 +305,8 @@ export function useEmployeeNotifications() {
 
     state.total = unreadList.length;
     state.hasTbm = unreadList.some(item => item.id.startsWith('tbm_'));
-    // hasEducation은 알림 dismiss와 무관하게, 실제 교육 이수 데이터 기반으로 판단
-    state.hasEducation = (educations && currentUser.roleCode === 'EMPLOYEE')
+    // hasEducation은 알림 dismiss와 무관하게, 실제 교육 이수 데이터 기반으로 판단 (교육 기능 꺼진 회사는 제외)
+    state.hasEducation = (educations && currentUser.roleCode === 'EMPLOYEE' && isEduFeatureEnabled)
       ? educations
           .filter(edu => !edu.companyId || edu.companyId === currentUser.companyId)
           .some(edu => {
